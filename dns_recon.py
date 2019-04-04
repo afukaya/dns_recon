@@ -14,11 +14,13 @@ DEPENDENCIES:
 	dnspython
 
 TODO:
-
+    - Reporting creation option.
+    - More DNS info:
+        Domain IP adresses ranges.
+        
 """
 
 import argparse
-import sys
 import socket
 import whois
 import dns.query
@@ -52,22 +54,33 @@ def get_servers(domain):
 
 def test_zone_transfer(domain):
     print('Testing DNS zone transfer')
-    name_servers = dns.resolver.query(domain,'NS')
-    servers = []
-    for ns in name_servers:
-        servers.append(str(ns))
-    for server in servers:
-        try:
-            zone_transfer = dns.zone.from_xfr(dns.query.xfr(server,domain))
-        except:
-            print('Zone transfer not allowed')
-        else:
-            print('Zone Info')
-            zone_info = zone_transfer.nodes.keys()
-            zone_info.sort()
-            for register in zone_info:
-                print(zone_transfer[register].to_text(register))
+    try:
+        name_servers = dns.resolver.query(domain,rdclass='IN',rdtype='NS',raise_on_no_answer=True)
+    except dns.exception.Timeout as e:
+        print(e)
+    except dns.resolver.NoAnswer as e:
+        print(e)
+    except Exception as e:
+        print('Unxpected Error:')
+        print(type(e))
+        print(e)
+    else:
+        servers = []
+        for ns in name_servers:
+            servers.append(str(ns))
+        for server in servers:
+            try:
+                zone_transfer = dns.zone.from_xfr(dns.query.xfr(server,domain))
+            except:
+                print('Zone transfer not allowed')
+            else:
+                print('Zone Info')
+                zone_info = zone_transfer.nodes.keys()
+                zone_info.sort()
+                for register in zone_info:
+                    print(zone_transfer[register].to_text(register))
     print('-'*80)
+    print()
 
 def main():
     parser = argparse.ArgumentParser()
